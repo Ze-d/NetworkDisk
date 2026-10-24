@@ -9,3 +9,5 @@
 **/dist/
 *.jar
 *.war
+docker
+docker_data

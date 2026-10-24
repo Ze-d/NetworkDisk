@@ -279,6 +279,7 @@ public class UserFileController {
         FileSearchContext context = new FileSearchContext();
         context.setKeyword(fileSearchParam.getKeyword());
         context.setUserId(UserIdUtil.get());
+        // fileTypes 是逗号分隔的，例如 3,4,5。此前却按 COMMON_SEPARATOR 解析，导致文档类型筛选时整个字符串无法正确转成整数列表，表现为“文档搜索不到/类型过滤异常”。
         String fileTypes = fileSearchParam.getFileTypes();
         if (StringUtils.isNotBlank(fileTypes) && !Objects.equals(FileConstant.ALL_FILE_TYPE, fileTypes)) {
             List<Integer> fileTypeArray = Splitter.on(BaseConstant.COMMA).splitToList(fileTypes).stream().map(Integer::valueOf).collect(Collectors.toList());

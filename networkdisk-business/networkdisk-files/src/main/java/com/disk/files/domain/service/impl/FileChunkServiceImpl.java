@@ -48,11 +48,14 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
      */
     @Override
     public void saveChunkFile(FileChunkSaveContext context) {
+        // 为什么这里要清除无效记录
         clearInvalidChunkRecord(context);
+        // 判断是否已经上传
         if (checkChunkUploaded(context)) {
             doJudgeMergeFile(context);
             return;
         }
+        // 执行保存
         doSaveChunkFile(context);
         doJudgeMergeFile(context);
     }

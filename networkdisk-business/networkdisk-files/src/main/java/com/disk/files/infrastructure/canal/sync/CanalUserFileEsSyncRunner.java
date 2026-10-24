@@ -65,12 +65,14 @@ public class CanalUserFileEsSyncRunner implements Runnable {
         );
 
         try {
+            // 订阅user_file表的所有变更
             connector.connect();
             connector.subscribe(properties.getSubscribeFilter());
             connector.rollback();
             log.info("canal sync started. destination={}, filter={}", properties.getDestination(), properties.getSubscribeFilter());
 
             while (running) {
+                // 批量拉取但是不确认，为什么？
                 Message message = connector.getWithoutAck(properties.getBatchSize());
                 long batchId = message.getId();
                 List<CanalEntry.Entry> entries = message.getEntries();

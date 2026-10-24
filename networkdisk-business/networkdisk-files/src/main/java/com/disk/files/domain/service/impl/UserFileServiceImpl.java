@@ -384,11 +384,13 @@ public class UserFileServiceImpl extends ServiceImpl<UserFileMapper, UserFileDO>
 
     @Override
     public List<FileSearchVO> search(FileSearchContext context) {
+        // 构建查询词
         List<String> searchTerms = buildSearchTerms(context.getKeyword());
         List<FileSearchVO> result;
         if (fileEsMapper != null) {
             // 优先走 ES
             LambdaEsQueryWrapper<UserFileESEntity> wrapper = new LambdaEsQueryWrapper<>();
+            // 多查询词的处理
             if (CollectionUtils.isNotEmpty(searchTerms)) {
                 wrapper.and(w -> {
                     boolean first = true;
@@ -410,11 +412,15 @@ public class UserFileServiceImpl extends ServiceImpl<UserFileMapper, UserFileDO>
             } else {
                 wrapper.like(UserFileESEntity::getFilename, context.getKeyword());
             }
+            // 用户隔离
             wrapper.eq(UserFileESEntity::getUserId, context.getUserId());
+            // 已删除文件隔离
             wrapper.eq(UserFileESEntity::getDeleted, com.disk.base.enums.DeleteEnum.NO.getCode());
+            // 文件类型过滤
             if (!EmptyUtil.isEmpty(context.getFileTypeArray())) {
                 wrapper.in(UserFileESEntity::getFileType, context.getFileTypeArray());
             }
+            // 排序
             wrapper.orderByDesc(UserFileESEntity::getGmtModified);
             List<UserFileESEntity> docs = fileEsMapper.selectList(wrapper);
             result = docs.stream().map(doc -> {
@@ -436,7 +442,9 @@ public class UserFileServiceImpl extends ServiceImpl<UserFileMapper, UserFileDO>
             // 回退 MySQL
             result = doSearch(context, searchTerms);
         }
+        // 补充父亲目录
         fillParentFilename(result);
+        // 关键字高亮
         applyHighlight(result, searchTerms);
         return result;
     }
@@ -485,6 +493,7 @@ public class UserFileServiceImpl extends ServiceImpl<UserFileMapper, UserFileDO>
      * @param context
      */
     private void saveFile(UploadFileContext context) {
+        // 为什么这里要做转换
         SaveFileContext fileSaveContext = fileConvertor.fileUploadContextToFileSaveContext(context);
         fileService.saveFile(fileSaveContext);
         context.setFileRecord(fileSaveContext.getFileRecord());
@@ -591,7 +600,7 @@ public class UserFileServiceImpl extends ServiceImpl<UserFileMapper, UserFileDO>
         entity.setDeleted(DeleteEnum.NO.getCode());
         entity.setCreateUser(userId);
         entity.setUpdateUser(userId);
-
+        //重名 
         handleDuplicateFilename(entity);
         if (!save((entity))) {
             throw new SystemException("保存文件信息失败");
@@ -1068,7 +1077,7 @@ public class UserFileServiceImpl extends ServiceImpl<UserFileMapper, UserFileDO>
         vo.setUpdateTime(record.getGmtModified());
         return vo;
     }
-
+    // 生成多个查询词
     private List<String> buildSearchTerms(String keyword) {
         String normalized = StringUtils.trimToEmpty(keyword);
         if (StringUtils.isBlank(normalized)) {

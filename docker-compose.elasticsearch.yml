@@ -1,0 +1,34 @@
+services:
+  elasticsearch:
+    image: networkdisk-elasticsearch:7.17.6-jdk17
+    build:
+      context: ./docker/elasticsearch
+    container_name: es
+    restart: always
+    ports:
+      - "9200:9200"
+    environment:
+      - node.name=es
+      - cluster.name=es-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./docker_data/es/data:/usr/share/elasticsearch/data
+      - ./docker_data/es/plugins:/usr/share/elasticsearch/plugins
+
+  kibana:
+    image: kibana:7.17.6
+    container_name: kibana
+    restart: always
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - I18N_LOCALE=zh-CN
+    depends_on:
+      - elasticsearch
